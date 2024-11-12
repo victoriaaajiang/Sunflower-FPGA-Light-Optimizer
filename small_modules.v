@@ -72,18 +72,53 @@ endmodule
 //after both are done incrementing, their value is stored in the max counter. 
 
 
-//Horizontal Counter: Moves regularly 360 degrees around theta
-module horizontal_counter(clk);
-    input clk;
-    output done_H; //done horizontal sweep
+// //Horizontal Counter: Moves regularly 360 degrees around theta
+// module horizontal_counter(clk);
+//     input clk;
+//     output done_H; //done horizontal sweep
 
-    always@ (posedge clk)
-        begin
-            //counts everytime and moves the motor to move the motor.
+//     always@ (posedge clk)
+//         begin
+//         //counts everytime and moves the motor to move the motor.
+
+// //Maximum Counter: After the horizontal and vertical angles were compared
+// module max_counter(clk, greater, max_counter, reset);
+//     input clk;
+//     input [11:0] greater;
+//     output max_counter;
+//     output reset;
+
+//     always@ (posedge clk)begin
+//         //increment
+//         max_counter <= max_counter + 1;
 
 
-//Servo driver: controls speed and direction of servo motor 
-module servo_driver(direction, enable, PWM);
-    input direction, enable;
-    output PWM;
+
+
+// //Servo driver: controls speed and direction of servo motor 
+// module servo_driver(direction, enable, PWM);
+//     input direction, enable;
+//     output PWM;
     
+//ADC voltage input converter
+module adc_voltage_reader (
+    input [11:0] adc_value,   // 12-bit digital value from ADC
+    output [15:0] voltage_mv  // Voltage in millivolts (16 bits to account for scaling)
+);
+
+    // Reference voltage (in millivolts)
+    parameter VREF_MV = 4096; // 4.096V in millivolts
+
+    // Function to convert ADC value to millivolts
+    function [15:0] convert_to_voltage;
+        input [11:0] adc_value; // 12-bit ADC value
+        begin
+            // Voltage calculation scaled to millivolts
+            convert_to_voltage = (adc_value * VREF_MV) >> 12; // Divide by 2^12
+        end
+    endfunction
+
+    // Assign the converted voltage to the output
+    assign voltage_mv = convert_to_voltage(adc_value);
+
+endmodule
