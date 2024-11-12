@@ -5,7 +5,9 @@
 //Register: stores previous state voltage
 //7-seg decoder: Display angles and on board
 
-module main_module(LEDR, HEX, SW);
+module main_module(ADC_DOUT, HEX);
+/*
+//LEDR, HEX, SW
     //SW[0] for the mode toggle
     input [0:0] SW 
 
@@ -27,8 +29,27 @@ module main_module(LEDR, HEX, SW);
     assign LEDR[1] = KEY[2]; //shows mode is set
     assign LEDR[2] = KEY[3]; //shows position is reset
 
-    shift s1(clk, reset, enable, greater, max);
-    max_value_comparator comp1(clk, reset, a, b, greater);
+    */
+    input [12:0] ADC_DOUT; //takes in voltage and gives 12-bit binary
+
+    assign adc_value = ADC_DOUT; //assigning ADC input pin for 12-bit binary, PIN_AK4
+
+    reg [15:0] voltage_mv; // Voltage in millivolts (16 bits to account for scaling)
+    reg[15:0] bcd_out//in decimals 4x4 for the 7-seg display
+
+
+    // shift s1(clk, reset, enable, greater, max);
+    // max_value_comparator comp1(clk, reset, a, b, greater);
+
+    adc_voltage_reader adc(adc_value, voltage_mv);// 12-bit digital value from ADC
+        // Voltage in millivolts (16 bits to account for scaling)
+    BinaryToBCD bcd(voltage_mv, bcd_out);
+
+    seg7_0 d1(bcd_out[3:0], HEX0);
+    seg7_0 d2(bcd_out[7:4], HEX1);
+    seg7_0 d3(bcd_out[11:8], HEX2);
+    seg7_0 d4(bcd_out[15:12], HEX3);
+
 
 endmodule
 
@@ -122,3 +143,48 @@ module adc_voltage_reader (
     assign voltage_mv = convert_to_voltage(adc_value);
 
 endmodule
+
+
+module BinaryToBCD (
+    input [15:0] binary_in,      // 16-bit binary input
+    output reg [15:0] bcd_out    // 4-digit BCD output (4 x 4 bits)
+);
+    integer i;
+    reg [27:0] shift_reg;        // 16-bit binary + 4x4 BCD = 28 bits
+
+    always @(binary_in) begin
+        // Initialize the shift register
+        shift_reg = {12'b0, binary_in};
+
+        // Perform the Double Dabble algorithm
+        for (i = 0; i < 16; i = i + 1) begin
+            // Check each BCD digit; if >= 5, add 3
+            if (shift_reg[27:24] >= 5)
+                shift_reg[27:24] = shift_reg[27:24] + 3;
+            if (shift_reg[23:20] >= 5)
+                shift_reg[23:20] = shift_reg[23:20] + 3;
+            if (shift_reg[19:16] >= 5)
+                shift_reg[19:16] = shift_reg[19:16] + 3;
+            if (shift_reg[15:12] >= 5)
+                shift_reg[15:12] = shift_reg[15:12] + 3;
+
+            // Shift left by 1 bit
+            shift_reg = shift_reg << 1;
+        end
+
+        // Assign the final BCD output
+        bcd_out = shift_reg[27:12];
+    end
+endmodule
+
+module seg7_0(X, HEX);
+	input [3:0] X;
+	output [6:0] HEX;
+	assign HEX[0] = ~((X[3])|(X[1])|(X[2]&X[0])|(~X[2]&~X[1]&~X[0]));
+	assign HEX[1] = ~((X[3])|(~X[3]&~X[2])|(~X[1]&~X[0])|(X[1]&X[0]));
+	assign HEX[2] = ~((~X[1])|(X[0])|(X[2]));
+	assign HEX[3] = ~((~X[2]&~X[1]&~X[0])|(X[2]&~X[1]&X[0])|(~X[3]&~X[2]&X[1])|(X[1]&~X[0]));
+	assign HEX[4] = ~((~X[2]&~X[1]&~X[0])|(X[1]&~X[0]));
+	assign HEX[5] = ~((X[3])|(~X[1]&~X[0])|(X[2]&~X[1])|(X[2]&X[1]&~X[0]));
+	assign HEX[6] = ~((X[3])|(X[2]&~X[1])|(X[1]&~X[0])|(~X[3]&~X[2]&X[1]));
+endmodule 
