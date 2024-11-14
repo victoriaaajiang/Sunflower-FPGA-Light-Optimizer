@@ -5,29 +5,45 @@
 //Register: stores previous state voltage
 //7-seg decoder: Display angles and on board
 
-module main_module(ADC, KEY, HEX0, HEX1, HEX2, HEX3);
+module sunflower(GPIO_0, KEY, HEX0, HEX1, HEX2, HEX3);
 
-    input [11:0] ADC;
+    input [35:0] GPIO_0;
     input KEY[0], KEY[1]; //resent and enable
-    output HEX0, HEX1, HEX2, HEX3;
-    
+    output [6:0]HEX0, HEX1, HEX2, HEX3;
+   
     wire clk;
-    wire [11:0] previous; //record the preivous ADC value for comparison
+    wire [11:0] ADC_value; //record the preivous ADC value for comparison
+    //assign pins from ADC output from left to right)
+    assign ADC_value = {
+        GPIO_0[27],
+        GPIO_0[25],
+        GPIO_0[23],
+        GPIO_0[21],
+        GPIO_0[19],
+        GPIO_0[17],
+        GPIO_0[15],
+        GPIO_0[13],
+        GPIO_0[11],
+        GPIO_0[7],
+        GPIO_0[5],
+        GPIO_0[3],
+        GPIO_0[1]
+    };
+
+//setup hex display digits
+    reg [3:0] digits0;
+    reg [3:0] digits1;
+    reg [3:0] digits2;
+    reg [3:0] digits3;
 
     //max_value_comparator(clk, reset, ADC, previous, greater)
-    previous p1(clk, ADC, previous);
-    max_value_comparator comp1(clk, ADC, previous, greater);
+    previous p1(clk, ADC_value, previous);
+    max_value_comparator comp1(clk, ADC_value, previous, greater);
     shift s1(clk, KEY[0], KEY[1], greater, max);
     //shift(clk, reset, enable, greater, max)
 
     //Display Functions
-    bin_to_bcd bcd(
-    input [11:0] binary,     // 12-bit binary input
-    output reg [3:0] digits0, // Ones place
-    output reg [3:0] digits1, // Tens place
-    output reg [3:0] digits2, // Hundreds place
-    output reg [3:0] digits3  // Thousands place
-    );
+    bin_to_bcd bcd(previous, digits0, digits1, digits2, digits3);
 
     seg voltage1(digits0, HEX0);
     seg voltage2(digits1, HEX1);
@@ -37,13 +53,13 @@ module main_module(ADC, KEY, HEX0, HEX1, HEX2, HEX3);
 endmodule
 
 //record previous ADC
-module previous(clk, ADC, previous);
+module previous(clk, ADC_value, previous);
     input clk;
-    input [11:0] ADC;
+    input [11:0] ADC_value;
     output reg [11:0] previous;
 
     always@ (posedge clk)begin
-        previous <= ADC;
+        previous <= ADC_value;
     end
 
 endmodule
@@ -78,7 +94,7 @@ module max_value_comparator(clk, a, b, greater);
     //outputs the greater one
     output [11:0] greater;
 
-    assign greater = (b > a);
+    assign greater = (a > b) ? a : b;
 endmodule
 
 
