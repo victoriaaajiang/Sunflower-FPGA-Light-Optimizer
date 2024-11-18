@@ -1,7 +1,7 @@
 module sunflower_prj(CLOCK_50, KEY, HEX0, HEX1, HEX2, HEX3, GPIO_0);
 
    input [35:0] GPIO_0;
-      input CLOCK_50;
+   input CLOCK_50;
    input [2:0] KEY; // reset 0, enable 1, and clk 2
    output [6:0] HEX0, HEX1, HEX2, HEX3;
 
@@ -11,7 +11,6 @@ module sunflower_prj(CLOCK_50, KEY, HEX0, HEX1, HEX2, HEX3, GPIO_0);
    wire [11:0] max;
 
    // Assign pins from ADC output (from left to right)
-      
 //    always @ (posedge CLOCK_50) begin
 //          ADC_value <= {
 //          GPIO_0[25], GPIO_0[23], GPIO_0[21], GPIO_0[19], GPIO_0[17], GPIO_0[15],
@@ -21,7 +20,8 @@ module sunflower_prj(CLOCK_50, KEY, HEX0, HEX1, HEX2, HEX3, GPIO_0);
    //wire clk = KEY[2]; // Clock signal from KEY[2]
 
    // Setup HEX display digits
-   wire [3:0] digits0, digits1, digits2, digits3;
+   wire [15:0] bcd_digits;
+//   wire [3:0] digits0, digits1, digits2, digits3;
 
    // Module connections
    //previous p1(CLOCK_50, ADC_value, previous);
@@ -30,15 +30,12 @@ module sunflower_prj(CLOCK_50, KEY, HEX0, HEX1, HEX2, HEX3, GPIO_0);
 
    // Display Functions
    //bin_to_bcd bcd(max, digits0, digits1, digits2, digits3);
-      
-      binary_to_decimal bcd(ADC_value, digits0, digits1, digits2, digits3);
+   Binary_to_BCD bcd(CLOCK_50, ADC_value, bcd_digits);
 
-   seg voltage1(digits0, HEX0);
-   seg voltage2(digits1, HEX1);
-   seg voltage3(digits2, HEX2);
-   seg voltage4(digits3, HEX3);
-
-
+   seg voltage1(bcd_digits[3:0], HEX0);
+   seg voltage2(bcd_digits[7:4], HEX1);
+   seg voltage3(bcd_digits[11:8], HEX2);
+   seg voltage4(bcd_digits[15:12], HEX3);
 
 endmodule
 
@@ -104,6 +101,8 @@ endmodule
 //endmodule
 
 // BCD Converter: Converts binary to BCD for display
+
+
 module Binary_to_BCD
    (input i_Clock,
     input [11:0] i_Binary,
@@ -130,7 +129,13 @@ module Binary_to_BCD
     if (i_Binary != r_Prev_Binary) begin
       r_Binary <= i_Binary; // Load new binary value
       r_Prev_Binary <= i_Binary; // Update the previous value tracker
-      r_BCD <= 0;          // Reset BCD result
+            
+            //////////////////////////////////////////attention////////////////////////////////////////////
+//      r_BCD <= 15'b000000000000101;          // Reset BCD result
+//outputs 5 when I uncomment this line, meaning the result does not change after it is reset.
+            //outputs 0 if I comment this line, which might mean it kept the original value at line 122 : r_BCD <= 0;          // Reset BCD result
+//In original code, should be: r_BCD <= 0;
+            
       r_Loop_Count <= 0;   // Reset loop counter
       r_Digit_Index <= 0;  // Reset digit index
       r_SM_Main <= s_SHIFT; // Start conversion
