@@ -5,17 +5,19 @@
 //Register: stores previous state voltage
 //7-seg decoder: Display angles and on board
 
-module sunflower(GPIO_0, KEY, HEX0, HEX1, HEX2, HEX3);
+module sunflower(GPIO_0, KEY, HEX0, HEX1, HEX2, HEX3, clk);
 
     input [35:0] GPIO_0;
     input KEY[0], KEY[1]; //resent and enable
+    input clk;
     output [6:0]HEX0, HEX1, HEX2, HEX3;
-   
-    wire clk;
+
     wire [11:0] ADC_value; //record the preivous ADC value for comparison
+    reg [11:0] previous;
+    wire [11:0] greater;
+    reg [11:0] max;
     //assign pins from ADC output from left to right)
     assign ADC_value = {
-        GPIO_0[27],
         GPIO_0[25],
         GPIO_0[23],
         GPIO_0[21],
@@ -24,6 +26,7 @@ module sunflower(GPIO_0, KEY, HEX0, HEX1, HEX2, HEX3);
         GPIO_0[15],
         GPIO_0[13],
         GPIO_0[11],
+
         GPIO_0[7],
         GPIO_0[5],
         GPIO_0[3],
@@ -43,7 +46,7 @@ module sunflower(GPIO_0, KEY, HEX0, HEX1, HEX2, HEX3);
     //shift(clk, reset, enable, greater, max)
 
     //Display Functions
-    bin_to_bcd bcd(previous, digits0, digits1, digits2, digits3);
+    bin_to_bcd bcd(max, digits0, digits1, digits2, digits3);
 
     seg voltage1(digits0, HEX0);
     seg voltage2(digits1, HEX1);
@@ -58,10 +61,20 @@ module previous(clk, ADC_value, previous);
     input [11:0] ADC_value;
     output reg [11:0] previous;
 
-    always@ (posedge clk)begin
+    always@ (posedge clk) begin
         previous <= ADC_value;
     end
 
+endmodule
+
+//Comparator: takes in 2 12 bit voltage values and sends the greater to the register
+module max_value_comparator(clk, a, b, greater);
+    //takes in 2 voltage values to compare
+    input [11:0] a, b;
+    //outputs the greater one
+    output [11:0] greater;
+
+    assign greater = (a > b) ? a : b;
 endmodule
 
 
@@ -71,7 +84,7 @@ module shift(clk, reset, enable, greater, max);
     input clk, reset, enable;
     //value to change to
     input [11:0] greater;
-    output [11:0] max;
+    output reg [11:0] max;
 
     always@ (posedge clk or posedge reset)
         begin
@@ -87,31 +100,17 @@ module shift(clk, reset, enable, greater, max);
         end
 endmodule
 
-//Comparator: takes in 2 12 bit voltage values and sends the greater to the register
-module max_value_comparator(clk, a, b, greater);
-    //takes in 2 voltage values to compare
-    input [11:0] a, b;
-    //outputs the greater one
-    output [11:0] greater;
-
-    assign greater = (a > b) ? a : b;
-endmodule
-
 
 //BCD converter, to display the voltage on the HEX
-module bin_to_bcd (
-    input [11:0] binary,     // 12-bit binary input
-    output reg [3:0] digits0, // Ones place
-    output reg [3:0] digits1, // Tens place
-    output reg [3:0] digits2, // Hundreds place
-    output reg [3:0] digits3  // Thousands place
-);
+module bin_to_bcd (max, digits0, digits1, digits2, digits3);
+    input [11:0] max;
+    output reg [3:0] digits0, digits1, digits2, digits3;
     integer i;
     reg [19:0] shift_reg; // Shift register for binary-to-BCD conversion
 
     always @(*) begin
         // Initialize shift register
-        shift_reg = {8'b0, binary}; // 8 MSBs for BCD digits, 12 LSBs for binary input
+        shift_reg = {8'b0, max}; // 8 MSBs for BCD digits, 12 LSBs for binary input
 
         // Perform double-dabble algorithm
         for (i = 0; i < 12; i = i + 1) begin
