@@ -13,7 +13,7 @@ module sunflower(GPIO_0, KEY, HEX0, HEX1, HEX2, HEX3, clk);
     output [6:0]HEX0, HEX1, HEX2, HEX3;
 
     wire [11:0] ADC_value; //record the preivous ADC value for comparison
-    reg [11:0] previous;
+    reg [11:0] previous = 0;
     wire [11:0] greater;
     reg [11:0] max;
     //assign pins from ADC output from left to right)

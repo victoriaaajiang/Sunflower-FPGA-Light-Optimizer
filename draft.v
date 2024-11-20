@@ -126,16 +126,11 @@ module Binary_to_BCD
 
   always @(posedge i_Clock) begin
     // Check if the input binary value has changed
-    if (i_Binary != r_Prev_Binary) begin
+    //r_BCD only resets when starting a new cycle.
+    if (i_Binary != r_Prev_Binary && r_SM_Main == s_IDLE) begin
       r_Binary <= i_Binary; // Load new binary value
       r_Prev_Binary <= i_Binary; // Update the previous value tracker
-            
-            //////////////////////////////////////////attention////////////////////////////////////////////
-//      r_BCD <= 15'b000000000000101;          // Reset BCD result
-//outputs 5 when I uncomment this line, meaning the result does not change after it is reset.
-            //outputs 0 if I comment this line, which might mean it kept the original value at line 122 : r_BCD <= 0;          // Reset BCD result
-//In original code, should be: r_BCD <= 0;
-            
+      r_BCD <= 0;          // Reset BCD result
       r_Loop_Count <= 0;   // Reset loop counter
       r_Digit_Index <= 0;  // Reset digit index
       r_SM_Main <= s_SHIFT; // Start conversion
