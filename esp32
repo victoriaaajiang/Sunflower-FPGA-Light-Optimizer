@@ -1,20 +1,43 @@
-const int analogPin = 34; // Pin connected to the battery voltage
-const float referenceVoltage = 3.3;
-const int resolution = 4096;
+#include <Arduino.h>
+
+// Define the analog pin and output pins
+const int analogPin = 34;  // GPIO34 (ADC1 channel 6)
+
+// Define the GPIO pins for the 12-bit binary output
+const int outputPins[12] = {2, 4, 5, 18, 19, 21, 22, 23, 25, 26, 27, 32};
+
+void setup() {
+  // Initialize Serial Monitor
+  Serial.begin(115200);
+
+  // Configure the analog pin
+  pinMode(analogPin, INPUT);
+
+  // Configure the output pins
+  for (int i = 0; i < 12; i++) {
+    pinMode(outputPins[i], OUTPUT);
+    digitalWrite(outputPins[i], LOW);  // Initialize all outputs to LOW
+  }
+}
 
 void loop() {
-  int rawValue = analogRead(analogPin); // Read the ADC value
-  float voltage = (rawValue * referenceVoltage) / (resolution - 1); // Convert to voltage
+  // Read the raw ADC value
+  int adcValue = analogRead(analogPin);
 
-  // Example calculation: Map voltage to battery percentage
-  float batteryPercentage = (voltage - 3.0) / (4.2 - 3.0) * 100.0;
+  // Print the ADC value and its binary equivalent
+  Serial.print("ADC Value: ");
+  Serial.print(adcValue);
+  Serial.print(" | Binary: ");
+  for (int i = 11; i >= 0; i--) {
+    Serial.print((adcValue >> i) & 1);
+  }
+  Serial.println();
 
-  // Print results
-  Serial.print("Voltage: ");
-  Serial.print(voltage, 2); // Print voltage with 2 decimal places
-  Serial.print(" V | Battery: ");
-  Serial.print(batteryPercentage, 1); // Print percentage with 1 decimal place
-  Serial.println(" %");
+  // Assign the binary value to the output pins
+  for (int i = 0; i < 12; i++) {
+    int bitValue = (adcValue >> i) & 1;  // Extract each bit
+    digitalWrite(outputPins[i], bitValue);
+  }
 
-  delay(500); // Delay for readability
+  delay(500);  // Delay for readability
 }
